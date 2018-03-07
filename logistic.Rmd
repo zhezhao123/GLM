@@ -1,0 +1,113 @@
+---
+title: "MA576 HW3"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+##4
+#a
+aviation <- read.delim("aviationdeaths.txt", header = T)
+attach(aviation)
+yf <- as.factor(Year)
+library(ggplot2)
+library(grid)
+library(gridExtra)
+proportion <- Deaths/Numbers
+logitp <- log(proportion/(1 - proportion))
+p1 <- qplot(Year, proportion, xlab = "Year", ylab = "Probability of Deaths") 
+p2 <- qplot(Age, proportion, xlab = "age", ylab = "Probability of Deaths")
+p3 <- qplot(Year, logitp, xlab = "Year", ylab = "logit Probability of Deaths") 
+p4 <- qplot(Age, logitp, xlab = "age", ylab = "logit Probability of Deaths")
+grid.arrange(p1, p2, p3, p4, nrow = 2, ncol = 2)
+```
+
+The probabilities of accidents-caused deaths is very small (three-decimal). The logit of proportions becomes quite large in the absolute term, which also indicated that probabilities of accidents-caused death is very small. It seems that both of them distributed randomly for Year groups. However, both of them tend to increase a age increases.
+
+```{r}
+#b
+mod1 <- glm(cbind(Deaths, Numbers - Deaths) ~ Age +yf, family = binomial(link ='logit'), data = aviation)
+summary(mod1)
+```
+
+The intercept term (b0) indicates the log odds of age "20-29" have deaths in year 1992.
+b1 for Age30-39 means the log odds ratio between age "20-29" in year 1992 and age30-39 in year 1992
+b2 for Age40-49 means the log odds ratio between age "20-29" in year 1992 and age40-49 in year 1992
+b3 for Age50-59 means the log odds ratio between age "20-29" in year 1992 and age50-59 in year 1992
+b4 for Age60-69 means the log odds ratio between age "20-29" in year 1992 and age60-69 in year 1992
+b5 for Year1993 means the log odds ratio between age "20-29" in year 1992 and age "20-29" in year 1993
+b6 for Year1994 means the log odds ratio between age "20-29" in year 1992 and age "20-29" in year 1994
+b7 for Year1995 means the log odds ratio between age "20-29" in year 1992 and age "20-29" in year 1995
+b8 for Year1996 means the log odds ratio between age "20-29" in year 1992 and age "20-29" in year 1996
+b9 for Year1997 means the log odds ratio between age "20-29" in year 1992 and age "20-29" in year 1997
+b10 for Year1998 means the log odds ratio between age "20-29" in year 1992 and age "20-29" in year 1998
+b11 for Year1999 means the log odds ratio between age "20-29" in year 1992 and age "20-29" in year 1999
+The intercept and coeefiecients of age50-59 and age60-69 groups seem to have significance in predicting of the model.
+
+```{r}
+#c
+mod2 <- glm(cbind(Deaths, Numbers - Deaths) ~ Age, family = binomial(link ='logit'), data = aviation)
+summary(mod2)
+```
+
+The intercept term (b0) indicates the log odds of age "20-29" between have deaths and not.
+b1 for Age30-39 means the log odds ratio between age "20-29" and age30-39
+b2 for Age40-49 means the log odds ratio between age "20-29" and age40-49 
+b3 for Age50-59 means the log odds ratio between age "20-29" and age50-59 
+b4 for Age60-69 means the log odds ratio between age "20-29" and age60-69 
+the significant parameter estimates are still intercept term, age50-59 and age60-69 without the factor of years. P-value is even smaller than the model in part b.
+
+```{r}
+anova(mod1,test = "Chisq") #with both factors age and year
+```
+
+```{r}
+anova(mod2, test = "Chisq") # with only the factor of age
+```
+
+```{r}
+anova(mod1, mod2, test = "Chisq")
+```
+
+As we can see from three analysis of deciance table, when comparing to the null model. Age seems to always be significant. When comparing nested model and restricted model, year seems doesn't improve the model significantly.
+
+```{r}
+#d
+agen <- as.numeric(Age)
+mod3 <- glm(cbind(Deaths, Numbers - Deaths) ~ agen, family = binomial(link ='logit'), data = aviation)
+summary(mod3)
+```
+
+The intercept term means the log odds of deaths if age is 0 (not make sense in this model). Coefficient of age (b1) means the log odds ratio of deaths when X increase by 1. For example, probability of deaths of age 20 is 0.0001970033 * (1.416331^20) = 0.208. The intercept and age terms are both significant. Advantages of the factor models is that it tells us wich age group has significant effect on deaths counts yet when age is numeric, we assume each unit increase of age is significant. Advantages of the numeric model is that we could have prediction of each age if we need, yet the factor model is limited to predict with the accuracy to each age.
+
+I think the factor model provides the most parismonious model since we don't need data of deaths count for each age, but only five groups of age could be enough. It is also effectively tells us that age 20-49 does not have significant effect on the probability of deaths. 
+
+```{r}
+#e
+pres <- residuals(mod3, type = "pearson")
+dres <- residuals(mod3, type = "deviance")
+dispersion <- sum((pres^2)/39) #n-p = 40-1 = 39
+deviance(mod3)
+ppres1 <- qplot(Age, pres, xlab = "age", ylab = "pearson residuals")
+ppres2 <- qplot(Year, pres, xlab = "year", ylab = "pearson residuals")
+pdres1 <- qplot(Age, dres, xlab = "age", ylab = "deviance residuals")
+pdres2 <- qplot(Year, dres, xlab = "year", ylab = "deviance residuals")
+grid.arrange(ppres1, ppres2, pdres1, pdres2, nrow = 2, ncol = 2)
+```
+
+the level of dispersion is 1.29683. Residuals seems fit randomly around zero as year or age increases. AIC is less than the factor model and factor model with factor year.
+
+```{r}
+anova(mod3, test = "Chisq")
+```
+
+The analysis of deviance table shows that age this is a significant model.

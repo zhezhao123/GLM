@@ -1,0 +1,71 @@
+---
+title: "HW576"
+output: pdf_document
+---
+
+```{r}
+##4
+#a
+X <- 1:100
+lambdagen <- exp(1-0.04*X)
+Y <-as.vector(rpois(X, lambda = lambdagen))
+pdata <- as.data.frame(cbind(X, Y))
+plot(X, Y)
+```
+```{r}
+#b
+X <- cbind(1, X)
+beta <- matrix(rep(0, ncol(X)), nrow = ncol(X), ncol = 1) #initialize beta == 0
+i <- 1 #counting iteration
+maxi = nrow(X)
+ones <- c(rep(1,100))
+while(i <= maxi){
+  eta <- X %*% beta
+  mu <- exp(eta)
+  V <- as.vector(mu)
+  w <- diag(V)
+  z <- eta + diag(ones/V)%*%(Y - mu)
+  blast <- beta
+  beta <- solve(t(X)%*%w%*%X)%*%t(X)%*%w%*%z
+  if(abs(beta[2,] - blast[2,]) <= 1e-4)
+    break
+  i <- i + 1
+}
+
+fit <- glm(Y~X[,2], family = "poisson")
+summary(fit)
+#c
+fisherin <- solve(t(X)%*%w%*%X)
+fisherin
+```
+#b
+The interation times is 5, which is also the result from the glm routine in R.
+The beta from the iteration procedure is the following:
+         [,1]
+   0.95538073
+X -0.03838775
+which is also very close to the result from the glm routine in R
+
+#c
+the fisher information matrix is the following:
+fisherin
+                            X
+   0.0354906454 -8.254298e-04
+X -0.0008254298  3.388128e-05
+```{r}
+varb0b1 <- 0.0354906454 + 3.388128e-05 - 2*8.254298e-04
+upper.list <- unlist(lapply(X, function(X) exp(0.95538073 - 0.03838775*X + qt(0.975, 98)*sqrt(varb0b1))))
+lower.list <- unlist(lapply(X, function(X) exp(0.95538073 - 0.03838775*X - qt(0.975, 98)*sqrt(varb0b1))))
+CI.matrix <- cbind(upper.list, lambdagen ,lower.list)
+CI.matrix[101:200,] #I don't know why my matrix also includes the 100 intervals of x0
+```
+From the matrix above, we saw the 95% intervals includes the true value of lambda
+
+```{r}
+#d
+datatotal <- cbind(X[,2], Y, lambdagen, mu)
+plot(datatotal[,1], Y) 
+points(datatotal[,1], lambdagen, col="red")
+points(datatotal[,1], mu, col="blue")
+```
+The estimated values and the true means are very similar.
